@@ -2,7 +2,7 @@ App = {
     web3Provider: null,
     contracts: {},
 
-    init: function () {
+    init: async function () {
         // Load pets.
         $.getJSON('../pets.json', function (data) {
             var petsRow = $('#petsRow');
@@ -20,31 +20,42 @@ App = {
             }
         });
 
-        return App.initWeb3();
+        return await App.initWeb3();
     },
 
-    initWeb3: function () {
-        if (typeof web3 !== 'undefined') {
-            App.web3Provider = web3.currentProvider;
-        } else {
-            // If no injected web3 instance is detected, fall back to Ganache
+    initWeb3: async function () {
+        // Modern dapp browsers...
+        if (window.ethereum) {
+            App.web3Provider = window.ethereum;
+            try {
+                // Request account access
+                await window.ethereum.enable();
+            } catch (error) {
+                console.error("User denied account access");
+            }
+        }
+        // Legacy dapp browsers...
+        else if (window.web3) {
+            App.web3Provider = window.web3.currentProvider;
+        }
+        // If no injected web3 instance is detected, fall back to Ganache
+        else {
             App.web3Provider = new Web3.providers.HttpProvider('http://localhost:7545');
         }
         web3 = new Web3(App.web3Provider);
-
         return App.initContract();
     },
 
     initContract: function () {
         $.getJSON('Adoption.json', function (data) {
             // Get the necessary contract artifact file and instantiate it with truffle-contract
-            var AdoptionArtifact = data;
+            let AdoptionArtifact = data;
             App.contracts.Adoption = TruffleContract(AdoptionArtifact);
 
-            // Set the provider for our contract
+            // Set the Provider for our contract
             App.contracts.Adoption.setProvider(App.web3Provider);
 
-            // Use our contract to retrieve and mark the adopted pets
+            // Use our contract to retrieve and mark the adopted pets.
             return App.markAdopted();
         });
 
@@ -56,8 +67,8 @@ App = {
     },
 
     markAdopted: function (adopters, account) {
-        var adoptionInstance;
 
+        let adoptionInstance;
         App.contracts.Adoption.deployed().then(function (instance) {
             adoptionInstance = instance;
 
@@ -71,22 +82,19 @@ App = {
         }).catch(function (err) {
             console.log(err.message);
         });
-
     },
 
     handleAdopt: function (event) {
         event.preventDefault();
 
         var petId = parseInt($(event.target).data('id'));
-        var adoptionInstance;
 
+        var adoptionInstance;
         web3.eth.getAccounts(function (error, accounts) {
             if (error) {
                 console.log(error);
             }
-
             var account = accounts[0];
-
             App.contracts.Adoption.deployed().then(function (instance) {
                 adoptionInstance = instance;
 
@@ -98,6 +106,7 @@ App = {
                 console.log(err.message);
             });
         });
+
     }
 
 };
