@@ -8,3 +8,5 @@ pet-shop-tutorial/node_modules/
 \.github/
 
 robust-smart-contracts-with-openzeppelin/node_modules/
+
+USING_INFURA/node_modules/
